@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Télécharger Fichier Excel Exemple</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 20px 0;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .instructions {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            border-left: 4px solid #2196F3;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Fichier Excel Exemple pour Cartes Scolaires</h1>
+        
+        <div class="instructions">
+            <h3>Instructions :</h3>
+            <p>1. Cliquez sur le bouton pour télécharger le fichier Excel exemple</p>
+            <p>2. Le fichier contient les colonnes nécessaires : Nom, Prénom, Classe, DateNaissance, LieuNaissance, Sexe, Matricule</p>
+            <p>3. Vous pouvez modifier les données selon vos besoins</p>
+            <p>4. Utilisez ce fichier avec votre générateur de cartes scolaires</p>
+        </div>
+
+        <button onclick="generateExcel()">Télécharger le Fichier Excel Exemple</button>
+
+        <h3>Aperçu des données :</h3>
+        <table id="dataPreview">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Prénom</th>
+                    <th>Classe</th>
+                    <th>DateNaissance</th>
+                    <th>LieuNaissance</th>
+                    <th>Sexe</th>
+                    <th>Matricule</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>KOSSI</td>
+                    <td>Aménam</td>
+                    <td>CP1</td>
+                    <td>15/03/2017</td>
+                    <td>Lomé</td>
+                    <td>M</td>
+                    <td>CP1-001</td>
+                </tr>
+                <tr>
+                    <td>AWUSSI</td>
+                    <td>Mawulolo</td>
+                    <td>CP1</td>
+                    <td>22/07/2017</td>
+                    <td>Kpalimé</td>
+                    <td>M</td>
+                    <td>CP1-002</td>
+                </tr>
+                <tr>
+                    <td>AGBEKLO</td>
+                    <td>Dédé</td>
+                    <td>CP1</td>
+                    <td>10/12/2016</td>
+                    <td>Atakpamé</td>
+                    <td>F</td>
+                    <td>CP1-003</td>
+                </tr>
+                <tr>
+                    <td>ADJOA</td>
+                    <td>Mélanie</td>
+                    <td>CP2</td>
+                    <td>03/05/2016</td>
+                    <td>Lomé</td>
+                    <td>F</td>
+                    <td>CP2-001</td>
+                </tr>
+                <tr>
+                    <td>AKPENE</td>
+                    <td>Solange</td>
+                    <td>CP2</td>
+                    <td>18/09/2016</td>
+                    <td>Aného</td>
+                    <td>F</td>
+                    <td>CP2-002</td>
+                </tr>
+                <tr>
+                    <td>BALOGOU</td>
+                    <td>Koffi</td>
+                    <td>CE1</td>
+                    <td>30/01/2015</td>
+                    <td>Lomé</td>
+                    <td>M</td>
+                    <td>CE1-001</td>
+                </tr>
+                <tr>
+                    <td>DJOBO</td>
+                    <td>Yao</td>
+                    <td>CE1</td>
+                    <td>14/11/2015</td>
+                    <td>Kara</td>
+                    <td>M</td>
+                    <td>CE1-002</td>
+                </tr>
+                <tr>
+                    <td>ESSO</td>
+                    <td>Akouvi</td>
+                    <td>CE1</td>
+                    <td>25/06/2015</td>
+                    <td>Lomé</td>
+                    <td>F</td>
+                    <td>CE1-003</td>
+                </tr>
+                <tr>
+                    <td>FIAWO</td>
+                    <td>Messan</td>
+                    <td>CE2</td>
+                    <td>08/08/2014</td>
+                    <td>Tsévié</td>
+                    <td>M</td>
+                    <td>CE2-001</td>
+                </tr>
+                <tr>
+                    <td>GANTO</td>
+                    <td>Pélagie</td>
+                    <td>CE2</td>
+                    <td>19/04/2014</td>
+                    <td>Lomé</td>
+                    <td>F</td>
+                    <td>CE2-002</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="instructions">
+            <h3>Notes importantes :</h3>
+            <p>• Les noms de colonnes doivent rester exactement les mêmes : <strong>Nom, Prénom, Classe, DateNaissance, LieuNaissance, Sexe, Matricule</strong></p>
+            <p>• Pour les photos : nommez les fichiers <strong>Nom_Prenom.jpg</strong> (ex: KOSSI_Aménam.jpg) ou <strong>Matricule.jpg</strong> (ex: CP1-001.jpg)</p>
+            <p>• Le format de date recommandé est JJ/MM/AAAA</p>
+            <p>• Le sexe peut être "M" pour Masculin ou "F" pour Féminin</p>
+        </div>
+    </div>
+
+    <script>
+        function generateExcel() {
+            // Données d'exemple
+            const data = [
+                {
+                    "Nom": "KOSSI",
+                    "Prénom": "Aménam",
+                    "Classe": "CP1",
+                    "DateNaissance": "15/03/2017",
+                    "LieuNaissance": "Lomé",
+                    "Sexe": "M",
+                    "Matricule": "CP1-001"
+                },
+                {
+                    "Nom": "AWUSSI",
+                    "Prénom": "Mawulolo",
+                    "Classe": "CP1",
+                    "DateNaissance": "22/07/2017",
+                    "LieuNaissance": "Kpalimé",
+                    "Sexe": "M",
+                    "Matricule": "CP1-002"
+                },
+                {
+                    "Nom": "AGBEKLO",
+                    "Prénom": "Dédé",
+                    "Classe": "CP1",
+                    "DateNaissance": "10/12/2016",
+                    "LieuNaissance": "Atakpamé",
+                    "Sexe": "F",
+                    "Matricule": "CP1-003"
+                },
+                {
+                    "Nom": "ADJOA",
+                    "Prénom": "Mélanie",
+                    "Classe": "CP2",
+                    "DateNaissance": "03/05/2016",
+                    "LieuNaissance": "Lomé",
+                    "Sexe": "F",
+                    "Matricule": "CP2-001"
+                },
+                {
+                    "Nom": "AKPENE",
+                    "Prénom": "Solange",
+                    "Classe": "CP2",
+                    "DateNaissance": "18/09/2016",
+                    "LieuNaissance": "Aného",
+                    "Sexe": "F",
+                    "Matricule": "CP2-002"
+                },
+                {
+                    "Nom": "BALOGOU",
+                    "Prénom": "Koffi",
+                    "Classe": "CE1",
+                    "DateNaissance": "30/01/2015",
+                    "LieuNaissance": "Lomé",
+                    "Sexe": "M",
+                    "Matricule": "CE1-001"
+                },
+                {
+                    "Nom": "DJOBO",
+                    "Prénom": "Yao",
+                    "Classe": "CE1",
+                    "DateNaissance": "14/11/2015",
+                    "LieuNaissance": "Kara",
+                    "Sexe": "M",
+                    "Matricule": "CE1-002"
+                },
+                {
+                    "Nom": "ESSO",
+                    "Prénom": "Akouvi",
+                    "Classe": "CE1",
+                    "DateNaissance": "25/06/2015",
+                    "LieuNaissance": "Lomé",
+                    "Sexe": "F",
+                    "Matricule": "CE1-003"
+                },
+                {
+                    "Nom": "FIAWO",
+                    "Prénom": "Messan",
+                    "Classe": "CE2",
+                    "DateNaissance": "08/08/2014",
+                    "LieuNaissance": "Tsévié",
+                    "Sexe": "M",
+                    "Matricule": "CE2-001"
+                },
+                {
+                    "Nom": "GANTO",
+                    "Prénom": "Pélagie",
+                    "Classe": "CE2",
+                    "DateNaissance": "19/04/2014",
+                    "LieuNaissance": "Lomé",
+                    "Sexe": "F",
+                    "Matricule": "CE2-002"
+                }
+            ];
+
+            // Créer un nouveau classeur
+            const wb = XLSX.utils.book_new();
+            
+            // Convertir les données en feuille de calcul
+            const ws = XLSX.utils.json_to_sheet(data);
+            
+            // Ajouter la feuille au classeur
+            XLSX.utils.book_append_sheet(wb, ws, "Élèves");
+            
+            // Générer le fichier Excel et le télécharger
+            XLSX.writeFile(wb, "exemple_cartes_scolaires.xlsx");
+        }
+    </script>
+</body>
+</html>

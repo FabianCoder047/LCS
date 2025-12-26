@@ -1,0 +1,1982 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Logiciel Scolaire - Bulletins & Cartes</title>
+
+<!-- Librairies CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+
+<style>
+  :root {
+    --primary-color: #1a73e8;
+    --secondary-color: #c71d24;
+    --accent-color: #0b3769;
+    --light-bg: #f6f8fa;
+    --white: #ffffff;
+    --border-color: #dadce0;
+    --text-color: #202124;
+    --text-light: #5f6368;
+    --success-color: #34a853;
+    --warning-color: #fbbc04;
+    --shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    --shadow-hover: 0 4px 8px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.12);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: var(--light-bg);
+    color: var(--text-color);
+    line-height: 1.5;
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  h1 {
+    font-size: 28px;
+    color: var(--accent-color);
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    color: var(--text-light);
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+
+  /* Navigation */
+  .nav-tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .tab-btn {
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .tab-btn:hover {
+    color: var(--primary-color);
+  }
+
+  .tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background-color: rgba(26, 115, 232, 0.05);
+  }
+
+  .tab-content {
+    display: none;
+    animation: fadeIn 0.5s;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Cards */
+  .card {
+    background: var(--white);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .card-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+  }
+
+  .card-title i {
+    margin-right: 8px;
+  }
+
+  /* Form Elements */
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: var(--text-color);
+  }
+
+  input[type="text"],
+  input[type="file"],
+  input[type="color"],
+  input[type="number"],
+  select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+  }
+
+  input:focus,
+  select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+  }
+
+  .file-input-wrapper {
+    position: relative;
+  }
+
+  .file-input-wrapper::after {
+    content: "Parcourir";
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--primary-color);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+  }
+
+  .color-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .color-input-wrapper input[type="color"] {
+    width: 60px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    cursor: pointer;
+  }
+
+  /* Buttons */
+  .buttons {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  button i {
+    margin-right: 8px;
+  }
+
+  .btn-primary {
+    background: var(--primary-color);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: #0d62d9;
+    box-shadow: var(--shadow-hover);
+  }
+
+  .btn-success {
+    background: var(--success-color);
+    color: white;
+  }
+
+  .btn-success:hover:not(:disabled) {
+    background: #2d9248;
+    box-shadow: var(--shadow-hover);
+  }
+
+  .btn-success:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  .btn-warning {
+    background: var(--warning-color);
+    color: white;
+  }
+
+  .btn-warning:hover {
+    background: #e6a700;
+    box-shadow: var(--shadow-hover);
+  }
+
+  /* Status */
+  #status {
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    background: #e8f0fe;
+    color: var(--primary-color);
+    font-weight: 500;
+  }
+
+  /* Table Styles */
+  .table-container {
+    overflow-x: auto;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 10px;
+    background: var(--white);
+  }
+
+  .class-title {
+    background: var(--accent-color);
+    color: white;
+    padding: 12px;
+    margin: 0 0 15px 0;
+    border-radius: 4px;
+    font-size: 18px;
+    text-align: center;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  th, td {
+    padding: 8px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+  }
+
+  th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: var(--accent-color);
+    position: sticky;
+    top: 0;
+  }
+
+  tr:hover {
+    background-color: #f8f9fa;
+  }
+
+  input[type="number"].note-input {
+    width: 60px;
+    padding: 4px;
+    text-align: center;
+    font-size: 12px;
+  }
+
+  /* Bulletin Preview */
+  .pageA4 {
+    width: 210mm;
+    min-height: 297mm;
+    box-sizing: border-box;
+    padding: 15mm;
+    margin: 16px auto;
+    background: white;
+    box-shadow: var(--shadow);
+    border-radius: 4px;
+  }
+
+  .bulletin-header {
+    text-align: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--accent-color);
+    padding-bottom: 10px;
+  }
+
+  .bulletin-header h2 {
+    margin: 0 0 5px 0;
+    color: var(--accent-color);
+  }
+
+  .student-info {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+    font-size: 14px;
+  }
+
+  .notes-table {
+    width: 100%;
+    margin-bottom: 30px;
+    font-size: 12px;
+  }
+
+  .notes-table th {
+    background-color: var(--accent-color);
+    color: white;
+    text-align: center;
+    padding: 8px 4px;
+  }
+
+  .notes-table td {
+    text-align: center;
+    padding: 6px 4px;
+  }
+
+  .resultats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .total-moyenne {
+    text-align: center;
+    font-weight: bold;
+    font-size: 18px;
+    color: var(--accent-color);
+  }
+
+  .appreciation {
+    font-style: italic;
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+  }
+
+  /* Progress Bar */
+  .progress-bar {
+    height: 4px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--primary-color);
+    width: 0%;
+    transition: width 0.3s;
+  }
+
+  /* Cartes scolaires */
+  .cardsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 5mm;
+    padding: 5mm;
+    height: 287mm;
+  }
+
+  .card-preview {
+    width: 90mm;
+    height: 50mm;
+    box-sizing: border-box;
+    border: 1px solid #d0d0d0;
+    padding: 4px;
+    position: relative;
+    background: linear-gradient(180deg, #f7fbfd 0%, #fff 50%);
+    border-radius: 4px;
+    font-size: 8px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .buttons {
+      flex-direction: column;
+    }
+    
+    .pageA4 {
+      width: 100%;
+      padding: 5mm;
+    }
+    
+    .nav-tabs {
+      flex-direction: column;
+    }
+    
+    .student-info {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    
+    .table-container {
+      font-size: 12px;
+    }
+    
+    th, td {
+      padding: 6px 3px;
+    }
+    
+    input[type="number"].note-input {
+      width: 50px;
+    }
+    
+    .class-title {
+      font-size: 16px;
+      padding: 10px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Logiciel Scolaire - Bulletins & Cartes</h1>
+    <p class="subtitle">Gestion complète des bulletins de notes et cartes scolaires</p>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <div class="nav-tabs">
+    <button class="tab-btn active" data-tab="bulletins">Bulletins de Notes</button>
+    <button class="tab-btn" data-tab="cards">Cartes Scolaires</button>
+  </div>
+
+  <!-- Bulletins Tab -->
+  <div id="bulletins-tab" class="tab-content active">
+    <div class="card">
+      <div class="card-title">Chargement des données pour une classe</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="bulletin-excelFile">Fichier Excel des élèves (.xls/.xlsx)</label>
+          <div class="file-input-wrapper">
+            <input id="bulletin-excelFile" type="file" accept=".xls,.xlsx" />
+          </div>
+          <small>Format: Nom, Prénom, DateNaissance, Classe, Matricule, Sexe</small>
+        </div>
+        <div class="form-group">
+          <label for="matieres-excelFile">Fichier des matières pour cette classe (.xls/.xlsx)</label>
+          <div class="file-input-wrapper">
+            <input id="matieres-excelFile" type="file" accept=".xls,.xlsx" />
+          </div>
+          <small>Format: Matière, Coefficient, Professeur</small>
+        </div>
+      </div>
+      <div class="progress-bar" id="bulletinProgressBar">
+        <div class="progress-bar-fill" id="bulletinProgressFill"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Paramètres du bulletin</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="schoolNameBulletin">Nom de l'établissement</label>
+          <input type="text" id="schoolNameBulletin" placeholder="Ex: Lycée Moderne">
+        </div>
+        <div class="form-group">
+          <label for="academicYear">Année scolaire</label>
+          <input type="text" id="academicYear" value="2023-2024">
+        </div>
+        <div class="form-group">
+          <label for="systeme">Système</label>
+          <select id="systeme">
+            <option value="trimestre">Trimestre</option>
+            <option value="semestre">Semestre</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="periode">Période</label>
+          <select id="periode">
+            <option value="1">1er Trimestre</option>
+            <option value="2">2ème Trimestre</option>
+            <option value="3">3ème Trimestre</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Saisie des notes</div>
+      <div id="classInfoSection" style="display: none;">
+        <div class="class-title" id="classTitle"></div>
+        <div id="notesSection">
+          <!-- Le tableau de saisie sera ajouté ici -->
+        </div>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button id="btnLoadStudents" class="btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+          <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+        </svg>
+        Charger les données
+      </button>
+      <button id="btnGenerateBulletin" class="btn-success" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+          <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+        </svg>
+        Générer les bulletins
+      </button>
+      <button id="btnDownloadBulletinPDF" class="btn-warning" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+          <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+        </svg>
+        Télécharger ZIP
+      </button>
+    </div>
+
+    <div id="bulletinPreviewWrap">
+      <div id="bulletinStatus">Aucun fichier chargé. Veuillez charger les fichiers Excel.</div>
+      <div id="bulletinPagesPreview"></div>
+    </div>
+  </div>
+
+  <!-- Cartes Scolaires Tab -->
+  <div id="cards-tab" class="tab-content">
+    <div class="card">
+      <div class="card-title">Informations de l'établissement</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="schoolName">Nom de l'école</label>
+          <input type="text" id="schoolName" placeholder="Ex: C.P.E MARANATHA">
+        </div>
+        <div class="form-group">
+          <label for="directorName">Nom du Directeur</label>
+          <input type="text" id="directorName" placeholder="Ex: M.BAZIE Directeur">
+        </div>
+        <div class="form-group">
+          <label for="schoolLogo">Drapeau</label>
+          <div class="file-input-wrapper">
+            <input id="schoolLogo" type="file" accept="image/*">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="directorSignature">Signature du Directeur</label>
+          <div class="file-input-wrapper">
+            <input id="directorSignature" type="file" accept="image/*">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="stateSealFile">Sceau de l'État</label>
+          <div class="file-input-wrapper">
+            <input id="stateSealFile" type="file" accept="image/*">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="footerColor">Couleur du pied de page</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="footerColor" value="#c71d24">
+            <input type="text" id="footerColorText" value="#c71d24" placeholder="#c71d24">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Données des étudiants</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="excelFile">Fichier Excel (.xls/.xlsx)</label>
+          <div class="file-input-wrapper">
+            <input id="excelFile" type="file" accept=".xls,.xlsx" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="zipFile">ZIP photos (Nom_Prenom.jpg ou Matricule.jpg)</label>
+          <div class="file-input-wrapper">
+            <input id="zipFile" type="file" accept=".zip" />
+          </div>
+        </div>
+      </div>
+      <div class="progress-bar" id="progressBar">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button id="btnProcess" class="btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+          <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+        </svg>
+        Générer l'aperçu
+      </button>
+      <button id="btnDownloadPDF" class="btn-success" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+          <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+        </svg>
+        Télécharger PDF
+      </button>
+    </div>
+
+    <div id="previewWrap">
+      <div id="status">Aucun fichier chargé. Veuillez sélectionner les fichiers et cliquer sur "Générer l'aperçu".</div>
+      <div id="pagesPreview"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================
+// VARIABLES GLOBALES
+// ============================
+let students = [];
+let bulletinStudents = [];
+let photosMap = {};
+let schoolLogo = '';
+let directorSignature = '';
+let stateSeal = '';
+let pdfReady = false;
+let bulletinPdfReady = false;
+let footerColor = '#c71d24';
+let matieres = [];
+let notesData = {};
+let currentClass = '';
+let classStudents = [];
+let classMatieres = [];
+
+// Obtenir l'année scolaire en cours
+const date = new Date();
+const dateEmmission = date.toLocaleDateString('fr-FR');
+const anneeDebut = date.getMonth() >= 8 ? date.getFullYear() : date.getFullYear() - 1;
+const anneeFin = anneeDebut + 1;
+
+// ============================
+// GESTION DES ONGLETS
+// ============================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    
+    this.classList.add('active');
+    const tabId = this.getAttribute('data-tab');
+    document.getElementById(`${tabId}-tab`).classList.add('active');
+  });
+});
+
+// ============================
+// FONCTIONS COMMUNES
+// ============================
+function normalizeName(s) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+}
+
+async function parseExcel(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+      resolve(data);
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// Fonction pour formater le rang (1er, 2ème, 1ère pour les filles)
+function formatRang(rang, sexe) {
+  if (rang === 1) {
+    return sexe === 'F' ? '1ère' : '1er';
+  } else if (rang === 2) {
+    return '2ème';
+  } else if (rang === 3) {
+    return '3ème';
+  } else {
+    return `${rang}ème`;
+  }
+}
+
+// ============================
+// MODULE BULLETINS (PAR CLASSE)
+// ============================
+
+// Gestion du système (Trimestre/Semestre)
+document.getElementById('systeme').addEventListener('change', function() {
+  const periodeSelect = document.getElementById('periode');
+  if (this.value === 'trimestre') {
+    periodeSelect.innerHTML = `
+      <option value="1">1er Trimestre</option>
+      <option value="2">2ème Trimestre</option>
+      <option value="3">3ème Trimestre</option>
+    `;
+  } else {
+    periodeSelect.innerHTML = `
+      <option value="1">1er Semestre</option>
+      <option value="2">2ème Semestre</option>
+    `;
+  }
+});
+
+// Charger les données élèves et matières pour une classe
+document.getElementById('btnLoadStudents').addEventListener('click', async () => {
+  const excelFile = document.getElementById('bulletin-excelFile').files[0];
+  const matieresFile = document.getElementById('matieres-excelFile').files[0];
+  
+  if (!excelFile) {
+    alert("Veuillez sélectionner un fichier Excel des élèves");
+    return;
+  }
+  
+  if (!matieresFile) {
+    alert("Veuillez sélectionner un fichier Excel des matières");
+    return;
+  }
+  
+  try {
+    document.getElementById('bulletinStatus').textContent = "Lecture des fichiers...";
+    const progressBar = document.getElementById('bulletinProgressBar');
+    const progressFill = document.getElementById('bulletinProgressFill');
+    progressBar.style.display = 'block';
+    progressFill.style.width = '30%';
+    
+    // Charger les élèves
+    bulletinStudents = await parseExcel(excelFile);
+    
+    // Vérifier qu'il y a des élèves
+    if (bulletinStudents.length === 0) {
+      throw new Error("Le fichier élèves est vide");
+    }
+    
+    // Déterminer la classe (on suppose que tous les élèves sont de la même classe)
+    const classes = [...new Set(bulletinStudents.map(s => s.Classe).filter(c => c && c.trim() !== ''))];
+    
+    if (classes.length === 0) {
+      throw new Error("Aucune classe trouvée dans le fichier élèves");
+    }
+    
+    if (classes.length > 1) {
+      throw new Error(`Plusieurs classes trouvées dans le fichier: ${classes.join(', ')}. Veuillez charger un fichier avec une seule classe.`);
+    }
+    
+    currentClass = classes[0];
+    
+    // Charger les matières (nouveau format sans colonne Observation)
+    matieres = await parseExcel(matieresFile);
+    
+    // Vérifier le format des matières
+    if (matieres.length === 0) {
+      throw new Error("Le fichier matières est vide");
+    }
+    
+    // Vérifier que les colonnes nécessaires existent
+    const sampleMatiere = matieres[0];
+    const requiredColumns = ['Matière', 'Coefficient', 'Professeur'];
+    const missingColumns = requiredColumns.filter(col => !sampleMatiere.hasOwnProperty(col));
+    
+    if (missingColumns.length > 0) {
+      throw new Error(`Colonnes manquantes dans le fichier matières: ${missingColumns.join(', ')}. Format attendu: Matière, Coefficient, Professeur`);
+    }
+    
+    progressFill.style.width = '60%';
+    
+    // Utiliser toutes les matières du fichier (puisqu'il est spécifique à la classe)
+    classMatieres = matieres;
+    
+    if (classMatieres.length === 0) {
+      throw new Error(`Aucune matière trouvée dans le fichier matières`);
+    }
+    
+    // Filtrer les élèves de la classe (normalement tous)
+    classStudents = bulletinStudents.filter(s => s.Classe === currentClass);
+    
+    progressFill.style.width = '100%';
+    
+    // Afficher les informations de la classe
+    displayClassInfo();
+    
+    // Afficher le tableau de saisie des notes
+    displayNotesTable();
+    
+    setTimeout(() => {
+      progressBar.style.display = 'none';
+      document.getElementById('bulletinStatus').textContent = `Données chargées: ${classStudents.length} élèves, ${classMatieres.length} matières pour la classe ${currentClass}.`;
+      document.getElementById('btnGenerateBulletin').disabled = false;
+    }, 500);
+    
+  } catch (error) {
+    alert("Erreur lors du chargement des fichiers: " + error.message);
+    document.getElementById('bulletinProgressBar').style.display = 'none';
+    document.getElementById('bulletinStatus').textContent = "Erreur lors du chargement des données";
+  }
+});
+
+// Afficher les informations de la classe
+function displayClassInfo() {
+  const classInfoSection = document.getElementById('classInfoSection');
+  const classTitle = document.getElementById('classTitle');
+  
+  classTitle.textContent = `Classe: ${currentClass} - ${classStudents.length} élèves - ${classMatieres.length} matières`;
+  classInfoSection.style.display = 'block';
+}
+
+// Afficher le tableau de saisie des notes
+function displayNotesTable() {
+  const notesSection = document.getElementById('notesSection');
+  notesSection.innerHTML = '';
+  
+  // Créer le conteneur du tableau
+  const tableContainer = document.createElement('div');
+  tableContainer.className = 'table-container';
+  tableContainer.style.overflowX = 'auto';
+  
+  // Créer le tableau
+  const table = document.createElement('table');
+  table.id = 'notesTable';
+  
+  // Créer l'en-tête du tableau
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  
+  // Colonnes fixes
+  const fixedHeaders = ['Nom', 'Prénom', 'Matricule'];
+  fixedHeaders.forEach(text => {
+    const th = document.createElement('th');
+    th.textContent = text;
+    th.rowSpan = 2;
+    th.style.verticalAlign = 'middle';
+    headerRow.appendChild(th);
+  });
+  
+  // Colonnes pour chaque matière (3 colonnes par matière)
+  classMatieres.forEach((matiere, index) => {
+    const th = document.createElement('th');
+    th.colSpan = 3;
+    th.textContent = `${matiere.Matière} (Coef ${matiere.Coefficient || 1}) - ${matiere.Professeur || ''}`;
+    th.style.backgroundColor = getColorForIndex(index);
+    th.style.color = 'white';
+    headerRow.appendChild(th);
+  });
+  
+  // Colonne moyenne
+  const thMoyenne = document.createElement('th');
+  thMoyenne.textContent = 'Moyenne';
+  thMoyenne.rowSpan = 2;
+  thMoyenne.style.verticalAlign = 'middle';
+  headerRow.appendChild(thMoyenne);
+  
+  thead.appendChild(headerRow);
+  
+  // Deuxième ligne d'en-tête pour les types de notes
+  const subHeaderRow = document.createElement('tr');
+  classMatieres.forEach(() => {
+    ['Interro', 'Devoir', 'Compo'].forEach(type => {
+      const th = document.createElement('th');
+      th.textContent = type;
+      th.style.fontSize = '11px';
+      th.style.padding = '4px';
+      subHeaderRow.appendChild(th);
+    });
+  });
+  thead.appendChild(subHeaderRow);
+  
+  table.appendChild(thead);
+  
+  // Corps du tableau
+  const tbody = document.createElement('tbody');
+  
+  // Ajouter les lignes pour chaque élève
+  classStudents.forEach(student => {
+    const tr = document.createElement('tr');
+    
+    // Informations de l'élève
+    tr.innerHTML = `
+      <td>${student.Nom || ''}</td>
+      <td>${student.Prénom || ''}</td>
+      <td>${student.Matricule || ''}</td>
+    `;
+    
+    // Identifiant unique de l'élève
+    const studentId = `${student.Nom}_${student.Prénom}_${student.Matricule}`;
+    
+    // Initialiser les données de notes pour cet élève
+    if (!notesData[studentId]) {
+      notesData[studentId] = {};
+    }
+    
+    // Champs de saisie pour chaque matière
+    classMatieres.forEach(matiere => {
+      const matiereId = matiere.Matière;
+      
+      // Initialiser les notes pour cette matière si nécessaire
+      if (!notesData[studentId][matiereId]) {
+        notesData[studentId][matiereId] = {
+          interro: '',
+          devoir: '',
+          compo: ''
+        };
+      }
+      
+      // Créer les trois champs de saisie
+      ['interro', 'devoir', 'compo'].forEach(type => {
+        const td = document.createElement('td');
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = 0;
+        input.max = 20;
+        input.step = 0.25;
+        input.className = 'note-input';
+        input.value = notesData[studentId][matiereId][type] || '';
+        input.placeholder = '0-20';
+        input.dataset.studentId = studentId;
+        input.dataset.matiereId = matiereId;
+        input.dataset.type = type;
+        
+        input.addEventListener('input', function() {
+          const value = this.value ? parseFloat(this.value) : null;
+          notesData[studentId][matiereId][type] = value;
+          calculateStudentMoyenne(studentId, tr);
+        });
+        
+        td.appendChild(input);
+        tr.appendChild(td);
+      });
+    });
+    
+    // Cellule pour la moyenne
+    const tdMoyenne = document.createElement('td');
+    tdMoyenne.className = 'student-average';
+    tdMoyenne.textContent = '-';
+    tdMoyenne.style.fontWeight = 'bold';
+    tr.appendChild(tdMoyenne);
+    
+    tbody.appendChild(tr);
+    
+    // Calculer la moyenne initiale si des notes existent déjà
+    calculateStudentMoyenne(studentId, tr);
+  });
+  
+  table.appendChild(tbody);
+  tableContainer.appendChild(table);
+  notesSection.appendChild(tableContainer);
+}
+
+// Fonction pour obtenir une couleur en fonction de l'index
+function getColorForIndex(index) {
+  const colors = [
+    '#1a73e8', '#34a853', '#fbbc04', '#ea4335', '#9c27b0',
+    '#00bcd4', '#ff9800', '#795548', '#607d8b', '#3f51b5'
+  ];
+  return colors[index % colors.length];
+}
+
+// Calculer la moyenne d'un élève
+function calculateStudentMoyenne(studentId, row) {
+  const studentNotes = notesData[studentId];
+  if (!studentNotes) return;
+  
+  let totalPoints = 0;
+  let totalCoefficients = 0;
+  let hasNotes = false;
+  
+  classMatieres.forEach(matiere => {
+    const matiereId = matiere.Matière;
+    const coefficient = parseFloat(matiere.Coefficient) || 1;
+    const notes = studentNotes[matiereId];
+    
+    if (notes && (notes.interro !== null || notes.devoir !== null || notes.compo !== null)) {
+      // Calculer la moyenne de la matière
+      const interro = notes.interro || 0;
+      const devoir = notes.devoir || 0;
+      const compo = notes.compo || 0;
+      
+      // Pondération: interro 20%, devoir 30%, compo 50%
+      const moyenneMatiere = (interro * 0.2) + (devoir * 0.3) + (compo * 0.5);
+      
+      totalPoints += moyenneMatiere * coefficient;
+      totalCoefficients += coefficient;
+      hasNotes = true;
+    }
+  });
+  
+  const moyenneCell = row.querySelector('.student-average');
+  if (hasNotes && totalCoefficients > 0) {
+    const moyenne = totalPoints / totalCoefficients;
+    moyenneCell.textContent = moyenne.toFixed(2);
+    
+    // Colorer la moyenne
+    if (moyenne >= 16) {
+      moyenneCell.style.color = '#34a853';
+    } else if (moyenne >= 10) {
+      moyenneCell.style.color = '#1a73e8';
+    } else {
+      moyenneCell.style.color = '#ea4335';
+    }
+  } else {
+    moyenneCell.textContent = '-';
+    moyenneCell.style.color = '';
+  }
+}
+
+// Générer les bulletins pour la classe
+document.getElementById('btnGenerateBulletin').addEventListener('click', function() {
+  if (classMatieres.length === 0) {
+    alert("Aucune matière disponible pour cette classe");
+    return;
+  }
+  
+  if (classStudents.length === 0) {
+    alert("Aucun élève dans la classe");
+    return;
+  }
+  
+  // Vérifier si des notes ont été saisies
+  let hasNotes = false;
+  for (const studentId in notesData) {
+    for (const matiereId in notesData[studentId]) {
+      const notes = notesData[studentId][matiereId];
+      if (notes.interro !== null || notes.devoir !== null || notes.compo !== null) {
+        hasNotes = true;
+        break;
+      }
+    }
+    if (hasNotes) break;
+  }
+  
+  if (!hasNotes) {
+    alert("Veuillez saisir des notes pour au moins un élève");
+    return;
+  }
+  
+  // Générer les bulletins
+  buildBulletinsPreview();
+});
+
+// Construire l'aperçu des bulletins
+function buildBulletinsPreview() {
+  const container = document.getElementById('bulletinPagesPreview');
+  container.innerHTML = '';
+  
+  const schoolName = document.getElementById('schoolNameBulletin').value || 'Établissement Scolaire';
+  const academicYear = document.getElementById('academicYear').value || '2023-2024';
+  const systeme = document.getElementById('systeme').value;
+  const periode = document.getElementById('periode').value;
+  const periodeText = systeme === 'trimestre' 
+    ? `${periode}ème Trimestre` 
+    : `${periode}ème Semestre`;
+  
+  // Calculer les moyennes de tous les élèves pour le classement
+  const classement = [];
+  
+  classStudents.forEach(student => {
+    const studentId = `${student.Nom}_${student.Prénom}_${student.Matricule}`;
+    const studentNotes = notesData[studentId] || {};
+    
+    let totalPoints = 0;
+    let totalCoefficients = 0;
+    
+    classMatieres.forEach(matiere => {
+      const matiereId = matiere.Matière;
+      const coefficient = parseFloat(matiere.Coefficient) || 1;
+      const notes = studentNotes[matiereId];
+      
+      if (notes) {
+        const interro = notes.interro || 0;
+        const devoir = notes.devoir || 0;
+        const compo = notes.compo || 0;
+        const moyenneMatiere = (interro * 0.2) + (devoir * 0.3) + (compo * 0.5);
+        totalPoints += moyenneMatiere * coefficient;
+        totalCoefficients += coefficient;
+      }
+    });
+    
+    const moyenne = totalCoefficients > 0 ? totalPoints / totalCoefficients : 0;
+    classement.push({
+      studentId: studentId,
+      moyenne: moyenne,
+      nom: student.Nom,
+      prenom: student.Prénom,
+      sexe: student.Sexe || 'M'
+    });
+  });
+  
+  // Trier par moyenne décroissante
+  classement.sort((a, b) => b.moyenne - a.moyenne);
+  
+  // Générer un bulletin par élève
+  classStudents.forEach(student => {
+    const page = document.createElement('div');
+    page.className = 'pageA4';
+    
+    const studentId = `${student.Nom}_${student.Prénom}_${student.Matricule}`;
+    const studentNotes = notesData[studentId] || {};
+    
+    // Calculer la moyenne de l'élève
+    let totalPoints = 0;
+    let totalCoefficients = 0;
+    let notesArray = [];
+    
+    classMatieres.forEach(matiere => {
+      const matiereId = matiere.Matière;
+      const coefficient = parseFloat(matiere.Coefficient) || 1;
+      const notes = studentNotes[matiereId];
+      
+      if (notes) {
+        const interro = notes.interro || 0;
+        const devoir = notes.devoir || 0;
+        const compo = notes.compo || 0;
+        const moyenneMatiere = (interro * 0.2) + (devoir * 0.3) + (compo * 0.5);
+        const noteFinale = moyenneMatiere;
+        
+        totalPoints += noteFinale * coefficient;
+        totalCoefficients += coefficient;
+        
+        notesArray.push({
+          matiere: matiereId,
+          coefficient: coefficient,
+          professeur: matiere.Professeur || '',
+          interro: interro,
+          devoir: devoir,
+          compo: compo,
+          moyenne: noteFinale.toFixed(2),
+          appreciation: getNoteAppreciation(noteFinale)
+        });
+      }
+    });
+    
+    const moyenne = totalCoefficients > 0 ? totalPoints / totalCoefficients : 0;
+    
+    // Trouver le rang de l'élève
+    const rangIndex = classement.findIndex(item => item.studentId === studentId) + 1;
+    const sexe = student.Sexe || 'M';
+    const rangFormate = formatRang(rangIndex, sexe);
+    
+    // Déterminer l'appréciation
+    const appreciation = getAppreciation(moyenne);
+    const mention = getMention(moyenne);
+    
+    // Créer le bulletin
+    page.innerHTML = `
+      <div class="bulletin-header">
+        <h2>BULLETIN DE NOTES</h2>
+        <h3>${schoolName}</h3>
+        <p>Année scolaire: ${academicYear} - ${periodeText}</p>
+      </div>
+      
+      <div class="student-info">
+        <div>
+          <p><strong>Nom:</strong> ${student.Nom || ''}</p>
+          <p><strong>Prénom:</strong> ${student.Prénom || ''}</p>
+          <p><strong>Date de naissance:</strong> ${student.DateNaissance || ''}</p>
+        </div>
+        <div>
+          <p><strong>Classe:</strong> ${student.Classe || ''}</p>
+          <p><strong>Matricule:</strong> ${student.Matricule || ''}</p>
+          <p><strong>Sexe:</strong> ${student.Sexe || ''}</p>
+        </div>
+        <div>
+          <p><strong>Effectif de la classe:</strong> ${classStudents.length} élèves</p>
+          <p><strong>Rang:</strong> ${rangFormate}</p>
+          <p><strong>Mention:</strong> ${mention}</p>
+        </div>
+      </div>
+      
+      <table class="notes-table">
+        <thead>
+          <tr>
+            <th rowspan="2">Matières</th>
+            <th rowspan="2">Coeff.</th>
+            <th rowspan="2">Professeur</th>
+            <th colspan="3">Notes</th>
+            <th rowspan="2">Moyenne</th>
+            <th rowspan="2">Appréciation</th>
+          </tr>
+          <tr>
+            <th>Interro</th>
+            <th>Devoir</th>
+            <th>Compo</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${notesArray.map(item => `
+            <tr>
+              <td style="text-align: left; padding-left: 10px;">${item.matiere}</td>
+              <td>${item.coefficient}</td>
+              <td>${item.professeur}</td>
+              <td>${item.interro > 0 ? item.interro.toFixed(2) : '-'}</td>
+              <td>${item.devoir > 0 ? item.devoir.toFixed(2) : '-'}</td>
+              <td>${item.compo > 0 ? item.compo.toFixed(2) : '-'}</td>
+              <td><strong>${item.moyenne}</strong></td>
+              <td>${item.appreciation}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      
+      <div class="resultats">
+        <div>
+          <p><strong>Nombre de matières:</strong> ${notesArray.length}</p>
+          <p><strong>Total des coefficients:</strong> ${totalCoefficients}</p>
+        </div>
+        <div class="total-moyenne">
+          <p>MOYENNE GÉNÉRALE</p>
+          <p style="font-size: 24px; margin: 5px 0;">${moyenne.toFixed(2)}/20</p>
+          <p>${appreciation}</p>
+        </div>
+        <div>
+          <p><strong>Décision du conseil:</strong> ${getDecision(moyenne)}</p>
+        </div>
+      </div>
+      
+      <div class="appreciation">
+        <p><strong>Appréciation générale:</strong> ${getFullAppreciation(moyenne)}</p>
+      </div>
+      
+      <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+        <div>
+          <p>Le Professeur Principal</p>
+          <p style="margin-top: 40px;">_________________________</p>
+        </div>
+        <div>
+          <p>Le Directeur</p>
+          <p style="margin-top: 40px;">_________________________</p>
+        </div>
+      </div>
+    `;
+    
+    container.appendChild(page);
+  });
+  
+  bulletinPdfReady = true;
+  document.getElementById('btnDownloadBulletinPDF').disabled = false;
+  document.getElementById('bulletinStatus').textContent = `${classStudents.length} bulletin(s) généré(s) pour la classe ${currentClass} - Prêt pour le téléchargement ZIP`;
+}
+
+// Fonctions utilitaires pour les bulletins
+function getNoteAppreciation(note) {
+  if (note >= 16) return 'Très Bien';
+  if (note >= 14) return 'Bien';
+  if (note >= 12) return 'Assez Bien';
+  if (note >= 10) return 'Passable';
+  if (note >= 8) return 'Insuffisant';
+  if (note >= 6) return 'Faible';
+  return 'Très faible';
+}
+
+function getAppreciation(moyenne) {
+  if (moyenne >= 16) return 'Excellente - Félicitations';
+  if (moyenne >= 14) return 'Très bien';
+  if (moyenne >= 12) return 'Bien';
+  if (moyenne >= 10) return 'Assez bien';
+  if (moyenne >= 8) return 'Insuffisant';
+  if (moyenne >= 6) return 'Faible';
+  return 'Très faible';
+}
+
+function getMention(moyenne) {
+  if (moyenne >= 16) return 'Excellente';
+  if (moyenne >= 14) return 'Très bien';
+  if (moyenne >= 12) return 'Bien';
+  if (moyenne >= 10) return 'Assez bien';
+  return 'Aucune';
+}
+
+function getDecision(moyenne) {
+  if (moyenne >= 10) return 'Admis(e)';
+  return 'Redouble';
+}
+
+function getFullAppreciation(moyenne) {
+  if (moyenne >= 16) {
+    return "Élève brillant et très travailleur. Continue sur cette excellente voie. Félicitations.";
+  } else if (moyenne >= 14) {
+    return "Très bon travail, résultats excellents. Peut encore progresser dans certaines matières.";
+  } else if (moyenne >= 12) {
+    return "Bon travail, résultats satisfaisants. Doit maintenir ses efforts et combler ses lacunes.";
+  } else if (moyenne >= 10) {
+    return "Résultats acceptables mais peut mieux faire. Doit redoubler d'efforts pour améliorer ses performances.";
+  } else if (moyenne >= 8) {
+    return "Résultats insuffisants. Doit travailler davantage et être plus attentif en classe.";
+  } else {
+    return "Résultats très faibles. Nécessite un soutien scolaire et un travail approfondi. Rencontre avec les parents recommandée.";
+  }
+}
+
+// Fonction pour générer le HTML d'un bulletin pour un élève donné (version corrigée)
+function generateBulletinHTML(student, rangFormate) {
+  const schoolName = document.getElementById('schoolNameBulletin').value || 'Établissement Scolaire';
+  const academicYear = document.getElementById('academicYear').value || '2023-2024';
+  const systeme = document.getElementById('systeme').value;
+  const periode = document.getElementById('periode').value;
+  const periodeText = systeme === 'trimestre' 
+    ? `${periode}ème Trimestre` 
+    : `${periode}ème Semestre`;
+  
+  const studentId = `${student.Nom}_${student.Prénom}_${student.Matricule}`;
+  const studentNotes = notesData[studentId] || {};
+  
+  // Calculer la moyenne de l'élève
+  let totalPoints = 0;
+  let totalCoefficients = 0;
+  let notesArray = [];
+  
+  classMatieres.forEach(matiere => {
+    const matiereId = matiere.Matière;
+    const coefficient = parseFloat(matiere.Coefficient) || 1;
+    const notes = studentNotes[matiereId];
+    
+    if (notes) {
+      const interro = notes.interro || 0;
+      const devoir = notes.devoir || 0;
+      const compo = notes.compo || 0;
+      const moyenneMatiere = (interro * 0.2) + (devoir * 0.3) + (compo * 0.5);
+      const noteFinale = moyenneMatiere;
+      
+      totalPoints += noteFinale * coefficient;
+      totalCoefficients += coefficient;
+      
+      notesArray.push({
+        matiere: matiereId,
+        coefficient: coefficient,
+        professeur: matiere.Professeur || '',
+        interro: interro,
+        devoir: devoir,
+        compo: compo,
+        moyenne: noteFinale.toFixed(2),
+        appreciation: getNoteAppreciation(noteFinale)
+      });
+    }
+  });
+  
+  const moyenne = totalCoefficients > 0 ? totalPoints / totalCoefficients : 0;
+  const appreciation = getAppreciation(moyenne);
+  const mention = getMention(moyenne);
+  
+  // Créer un document HTML complet avec les styles inline
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        @page {
+          size: A4;
+          margin: 15mm;
+        }
+        body {
+          font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+          background: white;
+          color: #202124;
+          line-height: 1.5;
+        }
+        .pageA4 {
+          width: 210mm;
+          min-height: 297mm;
+          box-sizing: border-box;
+          padding: 15mm;
+          margin: 0 auto;
+          background: white;
+          page-break-after: always;
+        }
+        .bulletin-header {
+          text-align: center;
+          margin-bottom: 20px;
+          border-bottom: 2px solid #0b3769;
+          padding-bottom: 10px;
+        }
+        .bulletin-header h2 {
+          margin: 0 0 5px 0;
+          color: #0b3769;
+          font-size: 24px;
+        }
+        .bulletin-header h3 {
+          margin: 0 0 10px 0;
+          color: #202124;
+          font-size: 18px;
+        }
+        .student-info {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 15px;
+          margin-bottom: 20px;
+          font-size: 14px;
+        }
+        .notes-table {
+          width: 100%;
+          margin-bottom: 30px;
+          font-size: 12px;
+          border-collapse: collapse;
+        }
+        .notes-table th {
+          background-color: #0b3769;
+          color: white;
+          text-align: center;
+          padding: 8px 4px;
+          border: 1px solid #ddd;
+        }
+        .notes-table td {
+          text-align: center;
+          padding: 6px 4px;
+          border: 1px solid #ddd;
+        }
+        .notes-table tr:nth-child(even) {
+          background-color: #f8f9fa;
+        }
+        .resultats {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #ddd;
+        }
+        .total-moyenne {
+          text-align: center;
+          font-weight: bold;
+          font-size: 18px;
+          color: #0b3769;
+        }
+        .appreciation {
+          font-style: italic;
+          margin-top: 20px;
+          padding: 10px;
+          background-color: #f8f9fa;
+          border-radius: 4px;
+          font-size: 14px;
+        }
+        @media print {
+          .pageA4 {
+            page-break-after: always;
+            margin: 0;
+            border: initial;
+            border-radius: initial;
+            width: initial;
+            min-height: initial;
+            box-shadow: initial;
+            background: initial;
+            padding: 15mm;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="pageA4">
+        <div class="bulletin-header">
+          <h2>BULLETIN DE NOTES</h2>
+          <h3>${schoolName}</h3>
+          <p>Année scolaire: ${academicYear} - ${periodeText}</p>
+        </div>
+        
+        <div class="student-info">
+          <div>
+            <p><strong>Nom:</strong> ${student.Nom || ''}</p>
+            <p><strong>Prénom:</strong> ${student.Prénom || ''}</p>
+            <p><strong>Date de naissance:</strong> ${student.DateNaissance || ''}</p>
+          </div>
+          <div>
+            <p><strong>Classe:</strong> ${student.Classe || ''}</p>
+            <p><strong>Matricule:</strong> ${student.Matricule || ''}</p>
+            <p><strong>Sexe:</strong> ${student.Sexe || ''}</p>
+          </div>
+          <div>
+            <p><strong>Effectif de la classe:</strong> ${classStudents.length} élèves</p>
+            <p><strong>Rang:</strong> ${rangFormate}</p>
+            <p><strong>Mention:</strong> ${mention}</p>
+          </div>
+        </div>
+        
+        <table class="notes-table">
+          <thead>
+            <tr>
+              <th rowspan="2">Matières</th>
+              <th rowspan="2">Coef.</th>
+              <th rowspan="2">Professeur</th>
+              <th colspan="3">Notes</th>
+              <th rowspan="2">Moyenne</th>
+              <th rowspan="2">Appréciation</th>
+            </tr>
+            <tr>
+              <th>Interro</th>
+              <th>Devoir</th>
+              <th>Compo</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${notesArray.map(item => `
+              <tr>
+                <td style="text-align: left; padding-left: 10px;">${item.matiere}</td>
+                <td>${item.coefficient}</td>
+                <td>${item.professeur}</td>
+                <td>${item.interro > 0 ? item.interro.toFixed(2) : '-'}</td>
+                <td>${item.devoir > 0 ? item.devoir.toFixed(2) : '-'}</td>
+                <td>${item.compo > 0 ? item.compo.toFixed(2) : '-'}</td>
+                <td><strong>${item.moyenne}</strong></td>
+                <td>${item.appreciation}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <div class="resultats">
+          <div>
+            <p><strong>Nombre de matières:</strong> ${notesArray.length}</p>
+            <p><strong>Total des coefficients:</strong> ${totalCoefficients}</p>
+          </div>
+          <div class="total-moyenne">
+            <p>MOYENNE GÉNÉRALE</p>
+            <p style="font-size: 24px; margin: 5px 0;">${moyenne.toFixed(2)}/20</p>
+            <p>${appreciation}</p>
+          </div>
+          <div>
+            <p><strong>Décision du conseil:</strong> ${getDecision(moyenne)}</p>
+          </div>
+        </div>
+        
+        <div class="appreciation">
+          <p><strong>Appréciation générale:</strong> ${getFullAppreciation(moyenne)}</p>
+        </div>
+        
+        <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+          <div>
+            <p>Le Professeur Principal</p>
+            <p style="margin-top: 40px;">_________________________</p>
+          </div>
+          <div>
+            <p>Le Directeur</p>
+            <p style="margin-top: 40px;">_________________________</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// Télécharger le ZIP des bulletins (version corrigée)
+document.getElementById('btnDownloadBulletinPDF').addEventListener('click', async () => {
+  if (!bulletinPdfReady) {
+    alert("Veuillez d'abord générer les bulletins");
+    return;
+  }
+  
+  const school = document.getElementById('schoolNameBulletin').value || 'bulletins';
+  const systeme = document.getElementById('systeme').value;
+  const periode = document.getElementById('periode').value;
+  const academicYear = document.getElementById('academicYear').value || '2023-2024';
+  const cleanSchoolName = school.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  const cleanClassName = currentClass.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  
+  const periodeText = systeme === 'trimestre' 
+    ? `${periode}ème_Trimestre` 
+    : `${periode}ème_Semestre`;
+  
+  try {
+    document.getElementById('bulletinStatus').textContent = "Génération des PDF individuels et création du ZIP...";
+    document.getElementById('btnDownloadBulletinPDF').disabled = true;
+    document.getElementById('bulletinProgressBar').style.display = 'block';
+    document.getElementById('bulletinProgressFill').style.width = '0%';
+    
+    // Créer un objet JSZip
+    const zip = new JSZip();
+    
+    // Calculer le classement une fois pour toutes
+    const classement = [];
+    classStudents.forEach(student => {
+      const studentId = `${student.Nom}_${student.Prénom}_${student.Matricule}`;
+      const studentNotes = notesData[studentId] || {};
+      
+      let totalPoints = 0;
+      let totalCoefficients = 0;
+      
+      classMatieres.forEach(matiere => {
+        const matiereId = matiere.Matière;
+        const coefficient = parseFloat(matiere.Coefficient) || 1;
+        const notes = studentNotes[matiereId];
+        
+        if (notes) {
+          const interro = notes.interro || 0;
+          const devoir = notes.devoir || 0;
+          const compo = notes.compo || 0;
+          const moyenneMatiere = (interro * 0.2) + (devoir * 0.3) + (compo * 0.5);
+          totalPoints += moyenneMatiere * coefficient;
+          totalCoefficients += coefficient;
+        }
+      });
+      
+      const moyenne = totalCoefficients > 0 ? totalPoints / totalCoefficients : 0;
+      classement.push({
+        studentId: studentId,
+        moyenne: moyenne,
+        sexe: student.Sexe || 'M'
+      });
+    });
+    
+    // Trier par moyenne décroissante
+    classement.sort((a, b) => b.moyenne - a.moyenne);
+    
+    // Générer un PDF pour chaque élève
+    for (let i = 0; i < classStudents.length; i++) {
+      const student = classStudents[i];
+      const studentId = `${student.Nom}_${student.Prénom}_${student.Matricule}`;
+      
+      // Mettre à jour la barre de progression
+      const progress = ((i + 1) / classStudents.length) * 100;
+      document.getElementById('bulletinProgressFill').style.width = `${progress}%`;
+      
+      // Trouver le rang de l'élève
+      const rangIndex = classement.findIndex(item => item.studentId === studentId) + 1;
+      const sexe = student.Sexe || 'M';
+      const rangFormate = formatRang(rangIndex, sexe);
+      
+      // Options pour html2pdf
+      const options = {
+        margin: 10,
+        filename: `${cleanSchoolName}_${cleanClassName}_${student.Nom}_${student.Prénom}_${periodeText}.pdf`,
+        image: { 
+          type: 'jpeg', 
+          quality: 0.98 
+        },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          allowTaint: false,
+          backgroundColor: '#ffffff'
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: 'a4', 
+          orientation: 'portrait',
+          compress: true
+        },
+        pagebreak: { mode: ['css', 'legacy'] }
+      };
+      
+      try {
+        // Générer le PDF directement à partir du HTML
+        const bulletinHTML = generateBulletinHTML(student, rangFormate);
+        const pdfBlob = await html2pdf()
+          .from(bulletinHTML)
+          .set(options)
+          .output('blob');
+        
+        // Ajouter le PDF au ZIP
+        const fileName = `Bulletin_${student.Nom}_${student.Prénom}_${currentClass}_${periodeText}.pdf`;
+        zip.file(fileName, pdfBlob);
+      } catch (error) {
+        console.error("Erreur lors de la génération du PDF pour", student.Nom, error);
+      }
+      
+      // Petite pause pour éviter de surcharger le navigateur
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    
+    // Générer le fichier ZIP
+    const zipBlob = await zip.generateAsync({ 
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 }
+    });
+    
+    // Télécharger le ZIP
+    const downloadLink = document.createElement('a');
+    downloadLink.href = URL.createObjectURL(zipBlob);
+    downloadLink.download = `${cleanSchoolName}_${cleanClassName}_bulletins_${periodeText}.zip`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    
+    // Réinitialiser
+    document.getElementById('bulletinProgressBar').style.display = 'none';
+    document.getElementById('btnDownloadBulletinPDF').disabled = false;
+    document.getElementById('bulletinStatus').textContent = `${classStudents.length} bulletin(s) téléchargé(s) dans un fichier ZIP`;
+    
+  } catch (error) {
+    console.error("Erreur lors de la génération du ZIP:", error);
+    alert("Erreur lors de la génération du ZIP: " + error.message);
+    document.getElementById('bulletinStatus').textContent = "Erreur lors de la génération du ZIP";
+    document.getElementById('btnDownloadBulletinPDF').disabled = false;
+    document.getElementById('bulletinProgressBar').style.display = 'none';
+  }
+});
+
+// ============================
+// MODULE CARTES SCOLAIRES
+// ============================
+// Synchroniser les deux champs de couleur
+document.getElementById('footerColor').addEventListener('input', function() {
+  document.getElementById('footerColorText').value = this.value;
+  footerColor = this.value;
+});
+
+document.getElementById('footerColorText').addEventListener('input', function() {
+  const colorValue = this.value;
+  if (/^#[0-9A-F]{6}$/i.test(colorValue)) {
+    document.getElementById('footerColor').value = colorValue;
+    footerColor = colorValue;
+  }
+});
+
+// Gestion des fichiers images
+document.getElementById('schoolLogo').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) schoolLogo = URL.createObjectURL(file);
+});
+
+document.getElementById('directorSignature').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) directorSignature = URL.createObjectURL(file);
+});
+
+document.getElementById('stateSealFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) stateSeal = URL.createObjectURL(file);
+});
+
+async function parseZipImages(file) {
+  photosMap = {};
+  const zip = await new JSZip().loadAsync(file);
+  const fileCount = Object.keys(zip.files).filter(name => !zip.files[name].dir && /\.(jpe?g|png)$/i.test(name)).length;
+  let processed = 0;
+  
+  for (const name of Object.keys(zip.files)) {
+    if (!zip.files[name].dir && /\.(jpe?g|png)$/i.test(name)) {
+      const blob = await zip.files[name].async('blob');
+      photosMap[normalizeName(name.split('/').pop().replace(/\.[^.]+$/, ''))] = URL.createObjectURL(blob);
+      processed++;
+      const progress = (processed / fileCount) * 100;
+      document.getElementById('progressFill').style.width = `${progress}%`;
+    }
+  }
+}
+
+function matchPhotosToStudents(data) {
+  students = data.map(s => {
+    const fullName = normalizeName((s.Nom + '_' + s.Prénom).trim());
+    const matricule = normalizeName(s.Matricule);
+    const nomPrenom = normalizeName(s.Nom + '' + s.Prénom);
+    
+    return {
+      ...s,
+      photo: photosMap[fullName] || photosMap[matricule] || photosMap[nomPrenom] || ''
+    };
+  });
+}
+
+function buildPagesPreview() {
+  const container = document.getElementById('pagesPreview');
+  container.innerHTML = '';
+  const school = document.getElementById('schoolName').value || 'Nom École';
+  const lieu = school.trim().split(" ").pop();
+  const director = document.getElementById('directorName').value || 'Directeur';
+
+  const cardsPerPage = 8;
+  for (let i = 0; i < students.length; i += cardsPerPage) {
+    const page = document.createElement('div');
+    page.className = 'pageA4';
+    
+    const cardsGrid = document.createElement('div');
+    cardsGrid.className = 'cardsGrid';
+    
+    for (let j = i; j < Math.min(i + cardsPerPage, students.length); j++) {
+      const s = students[j];
+      const card = document.createElement('div');
+      card.className = 'card-preview';
+      
+      const photoHTML = s.photo 
+        ? `<img class="photo" src="${s.photo}" crossOrigin="anonymous" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:85px;height:70px;object-fit:cover;border:1px solid var(--accent-color);background:#eee;">`
+        : '';
+      
+      const stateSealHTML = stateSeal 
+        ? `<img src="${stateSeal}" width="30" height="30" crossOrigin="anonymous" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+        : '';
+      
+      card.innerHTML = `
+        <div class="header" style="display:flex;align-items:center;justify-content:space-between;font-size:8px;margin-bottom:2px;">
+          ${schoolLogo ? `<img class="state-seal" src="${schoolLogo}" crossOrigin="anonymous" onerror="this.style.display='none'" style="width:30px;height:30px;border:1px solid #ccc;display:flex;align-items:center;justify-content:center;font-size:6px;text-align:center;background:white;border-radius:50%;">` : '<div class="state-seal" style="display:flex;width:30px;height:30px;border:1px solid #ccc;align-items:center;justify-content:center;font-size:6px;text-align:center;background:white;border-radius:50%;"></div>'}
+          <div style="flex:1; text-align:center; font-size:8px; font-weight:700; padding:0 4px;">
+            MINISTERE DES ENSEIGNEMENTS PRIMAIRE ET SECONDAIRE <br>
+            DRE PL-EST / IESG NOTSE
+          </div>
+          ${stateSealHTML}
+          <div class="state-seal" style="${stateSeal ? 'display:none' : 'display:flex;width:30px;height:30px;border:1px solid #ccc;align-items:center;justify-content:center;font-size:6px;text-align:center;background:white;border-radius:50%;'}">RÉPUBLIQUE<br>TOGOLAISE</div>
+        </div>
+        
+        <div class="card-title-section" style="text-align:center;font-weight:bold;font-size:9px;margin-bottom:3px;color:var(--accent-color);background:#f0f0f0;padding:2px;border-radius:2px;">CARTE D'IDENTITE SCOLAIRE / ${anneeDebut} - ${anneeFin}</div>
+        
+        <div style="display:flex">
+          ${photoHTML}
+          <div class="no-image-placeholder" style="${s.photo ? 'display:none' : 'display:flex;width:70px;height:70px;background:#f0f0f0;border:1px solid var(--accent-color);align-items:center;justify-content:center;font-size:6px;text-align:center;color:#666;'}">Photo<br>non<br>disponible</div>
+          <div class="infos" style="margin-left:4px;font-size:8px;flex:1;">
+            <div>
+              <div class="info-row" style="display:flex;justify-content:space-between;margin-bottom:10px;">
+                <strong><span class="info-label" style="font-weight:bold;margin-right:2px;font-size:7px;">Nom :</span> ${s.Nom}</strong>
+                <strong><span class="info-label" style="font-weight:bold;margin-right:2px;font-size:7px;">Prénom :</span> ${s.Prénom}</strong>
+              </div>
+            </div>
+            <div class="info-row" style="display:flex;justify-content:space-between;margin-bottom:10px;">
+              <div><span class="info-label" style="font-weight:bold;margin-right:2px;font-size:7px;">Classe:</span> ${s.Classe}</div>
+              <div><span class="info-label" style="font-weight:bold;margin-right:2px;font-size:7px;">Sexe:</span> ${s.Sexe}</div>
+              <div><span class="info-label" style="font-weight:bold;margin-right:2px;font-size:7px;">Né le:</span> ${s.DateNaissance}</div>
+            </div>
+            <div class="info-row" style="display:flex;justify-content:space-between;margin-bottom:10px;">
+              <div><span class="info-label" style="font-weight:bold;margin-right:2px;font-size:7px;">Lieu de naissance:</span> ${s.LieuNaissance}</div>
+              <div><span class="info-label" style="font-weight:bold;margin-right:2px;font-size:7px;">Matricule:</span> ${s.Matricule}</div>
+              <div style="visibility:hidden;">Placeholder</div>
+            </div>
+          </div>
+        </div>
+        
+        <div style="position:absolute; bottom:20px;font-size:7px;">
+          Fait à ${lieu}, le ${dateEmmission}
+        </div>
+
+        <div style="position:absolute; bottom:20px;font-size:7px; right:6px;text-align:right">
+          <p style="text-decoration:underline;padding-bottom:0;">Le Directeur</p>
+          ${directorSignature ? `<img src="${directorSignature}" width="40" crossOrigin="anonymous" onerror="this.style.display='none'"><br>` : ''}
+          ${director}
+        </div>
+        <div class="footer" style="position:absolute;left:0;right:0;bottom:0;height:12px;color:white;text-align:center;line-height:12px;font-weight:700;border-radius:0 0 4px 4px;font-size:7px;background:${footerColor};">${school}</div>
+      `;
+      cardsGrid.appendChild(card);
+    }
+    
+    page.appendChild(cardsGrid);
+    container.appendChild(page);
+  }
+  
+  pdfReady = true;
+  document.getElementById('btnDownloadPDF').disabled = false;
+}
+
+// Télécharger PDF pour les cartes
+document.getElementById('btnDownloadPDF').addEventListener('click', async () => {
+  if (!pdfReady) {
+    alert("Veuillez d'abord générer l'aperçu");
+    return;
+  }
+  
+  const element = document.getElementById('pagesPreview');
+  const school = document.getElementById('schoolName').value || 'cartes_scolaires';
+  const cleanSchoolName = school.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  
+  const options = {
+    margin: 0,
+    filename: `${cleanSchoolName}_cartes_scolaires.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { 
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      allowTaint: false
+    },
+    jsPDF: { 
+      unit: 'mm', 
+      format: 'a4', 
+      orientation: 'portrait' 
+    }
+  };
+  
+  try {
+    document.getElementById('status').textContent = "Génération du PDF en cours...";
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await html2pdf().set(options).from(element).save();
+    document.getElementById('status').textContent = `${students.length} carte(s) - PDF téléchargé avec succès`;
+  } catch (error) {
+    console.error("Erreur lors de la génération du PDF:", error);
+    alert("Erreur lors de la génération du PDF: " + error.message);
+    document.getElementById('status').textContent = "Erreur lors de la génération du PDF";
+  }
+});
+
+// Processus principal pour les cartes
+document.getElementById('btnProcess').addEventListener('click', async () => {
+  const excel = document.getElementById('excelFile').files[0];
+  const zip = document.getElementById('zipFile').files[0];
+  if (!excel) {
+    alert("Veuillez sélectionner un fichier Excel");
+    return;
+  }
+  
+  try {
+    document.getElementById('btnDownloadPDF').disabled = true;
+    pdfReady = false;
+    
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    progressBar.style.display = 'block';
+    progressFill.style.width = '0%';
+    
+    document.getElementById('status').textContent = "Lecture du fichier Excel...";
+    students = await parseExcel(excel);
+    
+    if (zip) {
+      document.getElementById('status').textContent = "Extraction des photos...";
+      await parseZipImages(zip);
+    }
+    
+    document.getElementById('status').textContent = "Association des photos aux étudiants...";
+    matchPhotosToStudents(students);
+    
+    document.getElementById('status').textContent = "Génération de l'aperçu...";
+    buildPagesPreview();
+    
+    progressBar.style.display = 'none';
+    document.getElementById('status').textContent = `${students.length} carte(s) générée(s) - Prêt pour le téléchargement PDF`;
+  } catch (error) {
+    alert("Erreur lors du traitement: " + error.message);
+    document.getElementById('status').textContent = "Erreur lors du traitement";
+    document.getElementById('progressBar').style.display = 'none';
+  }
+});
+
+// Initialisation
+document.getElementById('academicYear').value = `${anneeDebut}-${anneeFin}`;
+</script>
+</body>
+</html>

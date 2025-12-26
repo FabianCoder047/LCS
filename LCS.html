@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Générateur de cartes scolaires</title>
+
+<!-- Librairies CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+
+<style>
+  :root {
+    --primary-color: #1a73e8;
+    --secondary-color: #c71d24;
+    --accent-color: #0b3769;
+    --light-bg: #f6f8fa;
+    --white: #ffffff;
+    --border-color: #dadce0;
+    --text-color: #202124;
+    --text-light: #5f6368;
+    --success-color: #34a853;
+    --shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    --shadow-hover: 0 4px 8px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.12);
+  }
+
+  body {
+    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: var(--light-bg);
+    color: var(--text-color);
+    line-height: 1.5;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  h1 {
+    font-size: 28px;
+    color: var(--accent-color);
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    color: var(--text-light);
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+
+  .card {
+    background: var(--white);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .card-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+  }
+
+  .card-title i {
+    margin-right: 8px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: var(--text-color);
+  }
+
+  input[type="text"],
+  input[type="file"],
+  input[type="color"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+  }
+
+  input[type="text"]:focus,
+  input[type="file"]:focus,
+  input[type="color"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+  }
+
+  .file-input-wrapper {
+    position: relative;
+  }
+
+  .file-input-wrapper::after {
+    content: "Parcourir";
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--primary-color);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+  }
+
+  .color-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .color-input-wrapper input[type="color"] {
+    width: 60px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    cursor: pointer;
+  }
+
+  .color-input-wrapper input[type="text"] {
+    flex: 1;
+  }
+
+  .buttons {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  button i {
+    margin-right: 8px;
+  }
+
+  #btnProcess {
+    background: var(--primary-color);
+    color: white;
+  }
+
+  #btnProcess:hover {
+    background: #0d62d9;
+    box-shadow: var(--shadow-hover);
+  }
+
+  #btnDownloadPDF {
+    background: var(--success-color);
+    color: white;
+  }
+
+  #btnDownloadPDF:hover:not(:disabled) {
+    background: #2d9248;
+    box-shadow: var(--shadow-hover);
+  }
+
+  #btnDownloadPDF:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  #previewWrap {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    background: var(--white);
+    margin-top: 24px;
+  }
+
+  #status {
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    background: #e8f0fe;
+    color: var(--primary-color);
+    font-weight: 500;
+  }
+
+  .pageA4 {
+    width: 210mm;
+    min-height: 297mm;
+    box-sizing: border-box;
+    padding: 5mm;
+    margin: 16px auto;
+    background: white;
+    box-shadow: var(--shadow);
+    border-radius: 4px;
+  }
+
+  /* Ajustement pour 8 cartes par page A4 */
+  .cardsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 5mm;
+    padding: 5mm;
+    height: 287mm; /* Hauteur ajustée pour 4 rangées */
+  }
+
+  .card-preview {
+    width: 95mm; /* Largeur légèrement augmentée */
+    height: 55mm; /* Hauteur augmentée pour plus d'espace */
+    box-sizing: border-box;
+    border: 1px solid #d0d0d0;
+    padding: 6px; /* Padding augmenté */
+    position: relative;
+    background: linear-gradient(180deg, #f7fbfd 0%, #fff 50%);
+    border-radius: 4px;
+    font-size: 10px; /* Taille de police augmentée */
+  }
+
+  .card-preview .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10px; /* Taille de police augmentée */
+    margin-bottom: 4px; /* Marge augmentée */
+    white-space: nowrap; /* Empêche le retour à la ligne */
+    overflow: hidden; /* Cache le contenu qui dépasse */
+  }
+
+  .card-preview .photo {
+    width: 85px; /* Taille AUGMENTÉE */
+    height: 70px; /* Taille AUGMENTÉE */
+    object-fit: cover;
+    border: 1px solid var(--accent-color);
+    background: #eee;
+  }
+
+  .card-preview .infos {
+    margin-left: 6px; /* Marge augmentée */
+    font-size: 10px; /* Taille de police augmentée */
+    flex: 1;
+    line-height: 1.4; /* Interlignage augmenté pour une meilleure lisibilité */
+    min-width: 0; /* Permet au texte de respecter le nowrap */
+  }
+
+  .card-preview .footer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 14px; /* Hauteur augmentée */
+    color: white;
+    text-align: center;
+    line-height: 14px; /* Hauteur de ligne augmentée */
+    font-weight: 700;
+    border-radius: 0 0 4px 4px;
+    font-size: 9px; /* Taille de police augmentée */
+    padding: 0 5px; /* Ajout de padding horizontal */
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px; /* Marge ajustée pour un meilleur espacement */
+    align-items: center; /* Alignement vertical au centre */
+    white-space: nowrap; /* Empêche le retour à la ligne */
+    overflow: hidden; /* Cache le contenu qui dépasse */
+  }
+
+  .info-label {
+    font-weight: bold;
+    margin-right: 4px; /* Marge augmentée */
+    font-size: 9px; /* Taille de police augmentée */
+    white-space: nowrap; /* Empêche le retour à la ligne */
+    overflow: hidden; /* Cache le contenu qui dépasse */
+    text-overflow: ellipsis; /* Affiche ... si le texte est trop long */
+  }
+  
+  /* Style spécifique pour le lieu de naissance */
+  .info-row[data-field="lieu_naissance"] {
+    margin-right: 15px; /* Ajout d'une marge à droite */
+  }
+
+  .state-seal {
+    width: 30px; /* Taille réduite */
+    height: 30px; /* Taille réduite */
+    border: 1px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 6px; /* Taille de police réduite */
+    text-align: center;
+    background: white;
+    border-radius: 50%;
+  }
+
+  .no-image-placeholder {
+    width: 70px; /* Taille AUGMENTÉE */
+    height: 70px; /* Taille AUGMENTÉE */
+    background: #f0f0f0;
+    border: 1px solid var(--accent-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 6px; /* Taille de police réduite */
+    text-align: center;
+    color: #666;
+  }
+
+  .card-title-section {
+    text-align: center;
+    font-weight: bold;
+    font-size: 11px; /* Taille de police augmentée */
+    margin-bottom: 5px; /* Marge augmentée */
+    color: var(--accent-color);
+    background: #f0f0f0;
+    padding: 4px; /* Padding augmenté */
+    border-radius: 3px; /* Coins légèrement plus arrondis */
+    white-space: nowrap; /* Empêche le retour à la ligne */
+    overflow: hidden; /* Cache le contenu qui dépasse */
+    text-overflow: ellipsis; /* Affiche ... si le texte est trop long */
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--primary-color);
+    width: 0%;
+    transition: width 0.3s;
+  }
+
+  @media (max-width: 768px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .buttons {
+      flex-direction: column;
+    }
+    
+    .pageA4 {
+      width: 100%;
+      padding: 2mm;
+    }
+    
+    .cardsGrid {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+      gap: 2mm;
+      padding: 2mm;
+      height: auto;
+    }
+    
+    .card-preview {
+      width: 100%;
+      margin: 0 auto;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Générateur de cartes scolaires</h1>
+    <p class="subtitle">Créez facilement des cartes d'étudiant professionnelles pour votre établissement</p>
+  </header>
+
+  <div class="card">
+    <div class="card-title">Informations de l'établissement</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="schoolName">Nom de l'école</label>
+        <input type="text" id="schoolName" placeholder="Ex: C.P.E MARANATHA">
+      </div>
+      <div class="form-group">
+        <label for="directorName">Nom du Directeur</label>
+        <input type="text" id="directorName" placeholder="Ex: M.BAZIE Directeur">
+      </div>
+      <div class="form-group">
+        <label for="schoolLogo">Drapeau</label>
+        <div class="file-input-wrapper">
+          <input id="schoolLogo" type="file" accept="image/*">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="directorSignature">Signature du Directeur</label>
+        <div class="file-input-wrapper">
+          <input id="directorSignature" type="file" accept="image/*">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="stateSealFile">Sceau de l'État</label>
+        <div class="file-input-wrapper">
+          <input id="stateSealFile" type="file" accept="image/*">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="footerColor">Couleur du pied de page</label>
+        <div class="color-input-wrapper">
+          <input type="color" id="footerColor" value="#c71d24">
+          <input type="text" id="footerColorText" value="#c71d24" placeholder="#c71d24">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Données des étudiants</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="excelFile">Fichier Excel (.xls/.xlsx)</label>
+        <div class="file-input-wrapper">
+          <input id="excelFile" type="file" accept=".xls,.xlsx" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="zipFile">ZIP photos (Nom_Prenom.jpg ou Matricule.jpg)</label>
+        <div class="file-input-wrapper">
+          <input id="zipFile" type="file" accept=".zip" />
+        </div>
+      </div>
+    </div>
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-bar-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <div class="buttons">
+    <button id="btnProcess">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+      </svg>
+      Générer l'aperçu
+    </button>
+    <button id="btnDownloadPDF" disabled>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+      </svg>
+      Télécharger PDF
+    </button>
+    <button id="btnDownloadTemplate" style="background: var(--primary-color); color: white;" onclick="window.location.href='generator.html'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+      <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+      </svg>
+      Télécharger le template
+    </button>
+  </div>
+
+  <div id="previewWrap">
+    <div id="status">Aucun fichier chargé. Veuillez sélectionner les fichiers et cliquer sur "Générer l'aperçu".</div>
+    <div id="pagesPreview"></div>
+  </div>
+</div>
+
+<script>
+let students = [];
+let photosMap = {};
+let schoolLogo = '';
+let directorSignature = '';
+let stateSeal = '';
+let pdfReady = false;
+let footerColor = '#c71d24'; // Couleur par défaut
+	//Obtenir l'année scolaire en cours
+	const date = new Date();
+	const dateEmmission = date.toLocaleDateString('fr-FR');
+	const anneeDebut = date.getMonth()>=8 ? date.getFullYear() : date.getFullYear() -1;
+	const anneeFin = anneeDebut +1;
+	
+	
+// Synchroniser les deux champs de couleur
+document.getElementById('footerColor').addEventListener('input', function() {
+  document.getElementById('footerColorText').value = this.value;
+  footerColor = this.value;
+});
+
+document.getElementById('footerColorText').addEventListener('input', function() {
+  const colorValue = this.value;
+  // Validation simple de la couleur hexadécimale
+  if (/^#[0-9A-F]{6}$/i.test(colorValue)) {
+    document.getElementById('footerColor').value = colorValue;
+    footerColor = colorValue;
+  }
+});
+
+// Fonction pour convertir une image en base64
+function imageToBase64(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      try {
+        const dataURL = canvas.toDataURL('image/png');
+        resolve(dataURL);
+      } catch (e) {
+        reject(e);
+      }
+    };
+    img.onerror = () => reject(new Error('Erreur de chargement de l\'image'));
+    img.src = url;
+    // Si l'image ne se charge pas après 5 secondes, rejeter la promesse
+    setTimeout(() => {
+      if (!img.complete) reject(new Error('Timeout de chargement de l\'image'));
+    }, 5000);
+  });
+}
+
+function normalizeName(s){
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+}
+
+document.getElementById('schoolLogo').addEventListener('change', async e=>{
+  const file = e.target.files[0];
+  if(file) {
+    schoolLogo = URL.createObjectURL(file);
+  }
+});
+
+document.getElementById('directorSignature').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(file) directorSignature = URL.createObjectURL(file);
+});
+
+document.getElementById('stateSealFile').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(file) stateSeal = URL.createObjectURL(file);
+});
+
+async function parseExcel(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+      resolve(data);
+    };
+    reader.onerror=reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+async function parseZipImages(file){
+  photosMap={};
+  const zip=await new JSZip().loadAsync(file);
+  const fileCount = Object.keys(zip.files).filter(name => !zip.files[name].dir && /\.(jpe?g|png)$/i.test(name)).length;
+  let processed = 0;
+  
+  for(const name of Object.keys(zip.files)){
+    if(!zip.files[name].dir && /\.(jpe?g|png)$/i.test(name)){
+      const blob = await zip.files[name].async('blob');
+      photosMap[normalizeName(name.split('/').pop().replace(/\.[^.]+$/,''))] = URL.createObjectURL(blob);
+      processed++;
+      // Mettre à jour la barre de progression
+      const progress = (processed / fileCount) * 100;
+      document.getElementById('progressFill').style.width = `${progress}%`;
+    }
+  }
+}
+
+function matchPhotosToStudents(data){
+  students = data.map(s=>{
+    // Essayer plusieurs formats de noms pour trouver la photo
+    const fullName = normalizeName((s.Nom+'_'+s.Prénom).trim());
+    const matricule = normalizeName(s.Matricule);
+    const nomPrenom = normalizeName(s.Nom+''+s.Prénom);
+    
+    return {
+      ...s, 
+      photo: photosMap[fullName] || photosMap[matricule] || photosMap[nomPrenom] || ''
+    };
+  });
+}
+
+function buildPagesPreview(){
+  const container=document.getElementById('pagesPreview');
+  container.innerHTML='';
+  const school = document.getElementById('schoolName').value || 'Nom École';
+  const lieu = school.trim().split(" ").pop();
+  const director = document.getElementById('directorName').value || 'Directeur';
+
+  // Organiser les cartes en pages A4 (8 cartes par page)
+  const cardsPerPage = 8;
+  for(let i = 0; i < students.length; i += cardsPerPage) {
+    const page = document.createElement('div');
+    page.className = 'pageA4';
+    
+    const cardsGrid = document.createElement('div');
+    cardsGrid.className = 'cardsGrid';
+    
+    for(let j = i; j < Math.min(i + cardsPerPage, students.length); j++) {
+      const s = students[j];
+      const card=document.createElement('div');
+      card.className='card-preview';
+      
+      // Utiliser un placeholder si pas de photo
+      const photoHTML = s.photo 
+        ? `<img class="photo" src="${s.photo}" crossOrigin="anonymous" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+        : '';
+      
+      // HTML pour le sceau de l'État
+      const stateSealHTML = stateSeal 
+        ? `<img src="${stateSeal}" width="30" height="30" crossOrigin="anonymous" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+        : '';
+      
+      card.innerHTML=`
+        <div class="header">
+          ${schoolLogo ? `<img class="state-seal" src="${schoolLogo}" crossOrigin="anonymous" onerror="this.style.display='none'">` : '<div class="state-seal" style="display:flex"></div>'}
+          <div style="flex:1; text-align:center; font-size:8px; font-weight:700; padding:0 4px;">
+            MINISTERE DES ENSEIGNEMENTS PRIMAIRE ET SECONDAIRE <br>
+	    DRE PL-EST / IESG NOTSE
+          </div>
+          ${stateSealHTML}
+          <div class="state-seal" style="${stateSeal ? 'display:none' : 'display:flex'}">RÉPUBLIQUE<br>TOGOLAISE</div>
+        </div>
+        
+        <!-- Titre CARTE SCOLAIRE -->
+        <div class="card-title-section"/> CARTE D'IDENTITE SCOLAIRE / ${anneeDebut} - ${anneeFin}</div>
+        
+        <div style="display:flex">
+          ${photoHTML}
+          <div class="no-image-placeholder" style="${s.photo ? 'display:none' : 'display:flex'}">Photo<br>non<br>disponible</div>
+	<div class="infos">
+            <div>
+		<div class="info-row">
+		<strong>
+		   <span class="info-label">Nom :</span> ${s.Nom}
+		</strong>
+		<strong>
+		   <span class="info-label">Prénom :</span> ${s.Prénom}
+		</strong>
+		</div>
+	    </div>
+            <!-- Première ligne: 3 informations -->
+            <div class="info-row">
+              <div><span class="info-label">Classe:</span> ${s.Classe}</div>
+              <div><span class="info-label">Sexe:</span> ${s.Sexe}</div>
+              <div><span class="info-label">Né le:</span> ${s.DateNaissance}</div>
+            </div>
+            
+            <!-- Deuxième ligne: 3 informations -->
+            <div class="info-row">
+              <div style="margin-right: 15px;"><span class="info-label">Lieu de naissance:</span> ${s.LieuNaissance}</div>
+              <div><span class="info-label">Matricule:</span> ${s.Matricule}</div>
+              <div style="visibility:hidden;">Placeholder</div> <!-- Pour équilibrer la grille -->
+            </div>
+          </div>
+	</div>
+	
+	<div style="position:absolute; bottom:20px;font-size:7px;">
+          Fait à ${lieu}, le ${dateEmmission}
+        </div>
+
+        <div style="position:absolute; bottom: 15px; right: 6px; text-align: right; font-size: 7px;">
+          <div style="text-decoration: underline; margin-bottom: 2px;">Le Directeur</div>
+          ${directorSignature ? `<img src="${directorSignature}" width="40" crossOrigin="anonymous" onerror="this.style.display='none'" style="display: block; margin: 0 auto 2px;">` : ''}
+          <div>${director}</div>
+        </div>
+        <div class="footer" style="background: ${footerColor};">${school}</div>
+      `;
+      cardsGrid.appendChild(card);
+    }
+    
+    page.appendChild(cardsGrid);
+    container.appendChild(page);
+  }
+  
+  pdfReady = true;
+  document.getElementById('btnDownloadPDF').disabled = false;
+}
+
+// Fonction pour télécharger en PDF
+document.getElementById('btnDownloadPDF').addEventListener('click', async () => {
+  if (!pdfReady) {
+    alert("Veuillez d'abord générer l'aperçu");
+    return;
+  }
+  
+  const element = document.getElementById('pagesPreview');
+  const school = document.getElementById('schoolName').value || 'cartes_scolaires';
+  // Nettoyer le nom de l'école pour le nom du fichier
+  const cleanSchoolName = school.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  
+  const options = {
+    margin: 0,
+    filename: `${cleanSchoolName}_cartes_scolaires.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { 
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      allowTaint: false
+    },
+    jsPDF: { 
+      unit: 'mm', 
+      format: 'a4', 
+      orientation: 'portrait' 
+    }
+  };
+  
+  try {
+    // Afficher un message pendant la génération
+    document.getElementById('status').textContent = "Génération du PDF en cours...";
+    
+    // Attendre un peu que tout se charge
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Générer le PDF directement sans conversion d'images
+    await html2pdf().set(options).from(element).save();
+    
+    // Réactiver le bouton
+    document.getElementById('status').textContent = `${students.length} carte(s) - PDF téléchargé avec succès`;
+  } catch (error) {
+    console.error("Erreur lors de la génération du PDF:", error);
+    
+    // Essayer une méthode alternative avec des paramètres différents
+    try {
+      document.getElementById('status').textContent = "Tentative alternative...";
+      
+      const alternativeOptions = {
+        margin: 10,
+        filename: `${cleanSchoolName}_cartes_scolaires.pdf`,
+        image: { type: 'jpeg', quality: 0.8 },
+        html2canvas: { 
+          scale: 1.5,
+          useCORS: true,
+          logging: false
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: 'a4', 
+          orientation: 'portrait' 
+        }
+      };
+      
+      await html2pdf().set(alternativeOptions).from(element).save();
+      document.getElementById('status').textContent = `${students.length} carte(s) - PDF téléchargé avec succès`;
+    } catch (error2) {
+      alert("Erreur lors de la génération du PDF: " + error2.message);
+      document.getElementById('status').textContent = "Erreur lors de la génération du PDF";
+    }
+  }
+});
+
+document.getElementById('btnProcess').addEventListener('click',async()=>{
+  const excel=document.getElementById('excelFile').files[0];
+  const zip=document.getElementById('zipFile').files[0];
+  if (!excel) {
+    alert("Veuillez sélectionner un fichier Excel");
+    return;
+  }
+  
+  try {
+    // Désactiver le bouton PDF pendant le traitement
+    document.getElementById('btnDownloadPDF').disabled = true;
+    pdfReady = false;
+    
+    // Afficher la barre de progression
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    progressBar.style.display = 'block';
+    progressFill.style.width = '0%';
+    
+    document.getElementById('status').textContent = "Lecture du fichier Excel...";
+    students = await parseExcel(excel);
+    
+    if(zip) {
+      document.getElementById('status').textContent = "Extraction des photos...";
+      await parseZipImages(zip);
+    }
+    
+    document.getElementById('status').textContent = "Association des photos aux étudiants...";
+    matchPhotosToStudents(students);
+    
+    document.getElementById('status').textContent = "Génération de l'aperçu...";
+    buildPagesPreview();
+    
+    // Masquer la barre de progression
+    progressBar.style.display = 'none';
+    
+    // Mettre à jour le statut
+    document.getElementById('status').textContent = `${students.length} carte(s) générée(s) - Prêt pour le téléchargement PDF`;
+  } catch (error) {
+    alert("Erreur lors du traitement: " + error.message);
+    document.getElementById('status').textContent = "Erreur lors du traitement";
+    document.getElementById('progressBar').style.display = 'none';
+  }
+});
+</script>
+</body>
+</html>
